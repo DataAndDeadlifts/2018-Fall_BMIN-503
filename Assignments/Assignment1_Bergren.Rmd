@@ -1,0 +1,29 @@
+### Questions
+
+1) Provide your name. *(1 point)* 
+
+    Jake Bergren
+
+2) Provide the graduate or educational program at Penn that you are part of. *(1 point)* 
+
+    Dept: SEAS
+    Degree: Masters of Biotechnology, Certificate of Biomedical Informatics
+
+3) Describe what research topic(s) interest you using 2-3 sentences. *(2 points)* 
+
+    Explaining phenotypes, outcomes, health/disease with the -Omics. Using "other" data sources and unconventional data sources to better explain things we see. Improve medicine!
+
+4) What are you most interested in learning during this course? *(2 points)* 
+
+    How Data Science is used today, where it's going in the future. The tools, their uses and how to think creatively/critically with them.
+
+5) Provide a direct link in your html file to your GitHub account, such that clicking on your GitHub username will result in opening of your GitHub account. *(2 points)* 
+
+    [[DataandDeadlifts](https://github.com/DataandDeadlifts)]
+
+
+
+
+
+
+
