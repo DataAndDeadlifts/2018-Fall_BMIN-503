@@ -41,6 +41,7 @@ To get a list of integers use `:`. To create lists of numbers with more flexibil
 ```{r eval=TRUE}
 x <- 1:50
 x 
+x_alpha <- LETTERS
 x2 <- seq(1, 10, 2)
 x2
 x3 <- rep(1, 20)
@@ -205,10 +206,11 @@ y
 ```
 _If statements_ are not very helpful when written as above. Rather, they are often part of a function where a value (or values) can be passed and a condition evaluated. For example, this could be a portion of a script where the value _x_ changes and a decision is made based on its value. This way, the _if statement_ would only have to be written once. Other possibilities for _if statements_ are to include _else if_ clauses or to only test one condition. Try these on your own:
 ```{r, eval=FALSE}
+x <- 11
 if(x > 10){ y <- 20 }
 y
 rm(y)
-x<-2
+x<-11
 
 if(x > 10){ y <- 20 }
 y
@@ -316,13 +318,20 @@ c(1,2,1) * c(1,2,3,4) #And this?
 R has many loop functions that work as a _for loop_ but are shorter to write, making code simpler: `lappy`, `sapply`, and `apply`. Here are some examples of these:
 ```{r, eval=TRUE}
 x <- list(c(1:10), c(11:20))
+print("Sum")
 sapply(x, sum)
+print("Length")
 sapply(x, length)
 y <- list(a = rep(1, 5), b = rep(2, 5))
+y
+print("L-Sum")
 lapply(y, sum) #list apply
+print("S-Sum")
 sapply(y, sum) #simplified apply
 m1
+print("Sum along rows")
 apply(m1, 1, sum) #computes function along margins of an array 1=rows, 2=columns
+print("Sum along columns")
 apply(m1, 2, sum)
 ```
 Some shorthand functions that are like `apply` for common operations but work more quickly:
@@ -333,6 +342,3 @@ colSums(m1)
 colMeans(m1)
 ```
 Two other loop functions are `tapply`, and `mapply`. `mapply` can take in multiple lists and use items of each in a function. `tapply` is used to apply a function over subsets of a vector.
-
-
-
