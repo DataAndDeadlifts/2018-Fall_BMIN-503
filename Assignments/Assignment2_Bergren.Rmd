@@ -112,6 +112,29 @@ L$"30"[2]
 > my.f("two")
 
 
+```{r}
+my.f <- function(x) {
+  if (!(typeof(x) %in% c("double","numeric","integer"))) {
+    print("Input not integer!")
+  } else {
+    if (x %% 2 == 0) {
+     return(x)
+    } else {
+      return(x*2)
+    }
+  }
+}
+
+my.f(2)
+
+my.f(3)
+
+my.f(3L)
+
+my.f(6L)
+
+my.f("two")
+```
 
 ####R Data Manipulation
 5. There is a CSV file containing a subset of the 2007-2008 NHANES data [here](https://raw.githubusercontent.com/HimesGroup/BMIN503/master/DataFiles/NHANES_2007to2008.csv) with a corresponding [data dictionary](https://github.com/HimesGroup/BMIN503/blob/master/DataFiles/NHANES_2007to2008_DataDictionary.md). Read in the *raw* data file. *(2 points)*
