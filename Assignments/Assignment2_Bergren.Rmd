@@ -181,7 +181,7 @@ table(data$HUQ040)
 
 ```{r}
 print("Adults 18 or older:")
-nrow(subset(data, RIDAGEYR >= 18))
+nrow(data[data$RIDAGEYR >= 18, ])
 ```
 
 
