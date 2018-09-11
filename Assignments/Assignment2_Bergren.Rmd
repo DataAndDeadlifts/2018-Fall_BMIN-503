@@ -140,16 +140,48 @@ my.f("two")
 5. There is a CSV file containing a subset of the 2007-2008 NHANES data [here](https://raw.githubusercontent.com/HimesGroup/BMIN503/master/DataFiles/NHANES_2007to2008.csv) with a corresponding [data dictionary](https://github.com/HimesGroup/BMIN503/blob/master/DataFiles/NHANES_2007to2008_DataDictionary.md). Read in the *raw* data file. *(2 points)*
 
 > Replace this text with a chunk of R code that loads the dataset
-  
+
+```{r}
+data = read.csv("NHANES_2007to2008_Assignment-2.csv")
+```
+
 Now, using some of the R functions discussed in class, answer the following questions by inserting code below each bullet to provide the answer directly. *(10 points)*
 
 * How many subjects are in the dataset and what data type is in each column?
 
+```{r}
+print("Number of subjects:")
+nrow(data)
+print("Columns and data types:")
+sapply(data, class)
+```
+
 * How many missing values are there for each variable?
+
+```{r}
+sapply(data, function(y) sum(length(which(is.na(y)))))
+```
 
 * How many male and female subjects are there?
 
+```{r}
+print("Number of males:")
+sum(data$RIAGENDR==1)
+print("Number of females:")
+sum(data$RIAGENDR==2)
+```
+
 * What is the most frequent answer to the question regarding the type of place subjects most often go for healthcare?
 
+```{r}
+table(data$HUQ040)
+```
+
 * How many adult subjects are there (with adult defined as age of 18 or greater)?
+
+```{r}
+print("Adults 18 or older:")
+nrow(subset(data, RIDAGEYR >= 18))
+```
+
 
