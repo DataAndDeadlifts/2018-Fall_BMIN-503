@@ -142,7 +142,7 @@ my.f("two")
 > Replace this text with a chunk of R code that loads the dataset
 
 ```{r}
-data = read.csv("NHANES_2007to2008_Assignment-2.csv")
+data = read.csv("NHANES_2007to2008.csv")
 ```
 
 Now, using some of the R functions discussed in class, answer the following questions by inserting code below each bullet to provide the answer directly. *(10 points)*
@@ -174,7 +174,11 @@ sum(data$RIAGENDR==2)
 * What is the most frequent answer to the question regarding the type of place subjects most often go for healthcare?
 
 ```{r}
-table(data$HUQ040)
+huq040_table <- table(data$HUQ040)
+max_val <- max(huq040_table)
+places_dict <- c("Clinic"=1,"Doctor's Office"=2,"Hospital Emergency Room"=3,"Hospital outpatient"=4,"Some other place"=5,"Refused"=7,"Don't Know"=9)
+print("Most common place;")
+places_dict[which(huq040_table==max_val)]
 ```
 
 * How many adult subjects are there (with adult defined as age of 18 or greater)?
