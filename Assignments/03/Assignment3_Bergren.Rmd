@@ -64,9 +64,13 @@ n_carriers = nrow(distinct(flights['carrier']))
 print("Num carriers that departed NYC in 2013;")
 print(n_carriers)
 
+# Are there any origins beside NYC?
+distinct(flights['origin'])
+# Looks like there isn't, no need to filter then!
 carrier_flight_count <- table(flights$carrier)
 max_carrier <- names(which(carrier_flight_count==max(carrier_flight_count)))
 print("Carrier with most flights")
+print(max_carrier)
 ```
 
     
@@ -77,8 +81,11 @@ print("Carrier with most flights")
 
 
 5. Load the `MASS` package, which contains the  [birthwt](https://stat.ethz.ch/R-manual/R-devel/library/MASS/html/birthwt.html) dataset, to answer the following questions. We will work toward identifying variables that are associated with low birthweight, both as a dichotomous outcome and a continuous one. HINT: The `MASS` package contains a `select` command that may compete with that from `dplyr`. If you have `dplyr` and `MASS` loaded simultaneously and want to use `dplyr`'s `select`, do it explicitly. For example, use `dplyr::select` rather than `select`. *(9 points)*
+
     + Take a look at the `birthwt` dataset (e.g., using `str()`) to get a sense of variables it contains. We will use the variables `low` and `bwt` as outcomes and `age`, `race`, `smoke`, `ht`, `ptl` as predictors. Create a new dataset `birthwt.clean` containing only the variables we are interested in, where (1) the variables `low`, `ht`, and `ptl` are renamed `low.birth.wt`, `hypertension`, and `prem.labor`, respectively, (2) all integer categories (i.e., `low.birth.wt`, `race`, `smoke`, `hypertension`, `prem.labor`) are converted to factors with intuitive labels, (3) the `race` variable does not include the `other` category, and (4) the `ptl` variable is dichotomized into two levels based on a positive or negative history of previous premature labor. 
+    
     + Perform univariate analysis for the resulting `age` and `smoke` variables you created as predictors and `low.birth.wt` and `bwt` as outcomes. Include appropriate plots that look at the pairwise relationships between the outcomes and each predictor. Are there differences between the results for each outcome?
+    
     + Create multivariable regression models for `low.birth.wt` and `bwt` using `age`, `race`, `smoke`, `hypertension`, and `prem.labor` as predictors. What factors are significantly associated with the birth weight outcomes?
 
 
