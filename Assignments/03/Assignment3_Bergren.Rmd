@@ -50,7 +50,9 @@ options(width = 400)
 ```{r}
 #install.packages("nycflights13")
 #install.packages("dplyr")
+#install.packages("ggplot2")
 library("dplyr")
+library("ggplot2")
 ```
 
 
@@ -75,9 +77,48 @@ print(max_carrier)
 
     
     + Of the flights that departed in June and July, how many unique tailnum contained the letter M or P?
+    
+```{r}
+# Get unique tailnums in June, July flights
+unique_tails <- distinct(filter(flights, month==6|month==7)['tailnum'])
+# Get tails that contain M or P
+m_or_p_tails <- filter(unique_tails,grepl("M",tailnum)|grepl("P",tailnum))
+print("Number of tailnums from flights in june and july that contain the letter M or P.")
+print(nrow(m_or_p_tails))
+```
+  
+
     + What was the most popular destination each month?
+    
+```{r}
+pop_dest_by_month <- summarize(group_by(flights,month,dest),count =n()) %>%
+  filter(count==max(count))
+```
+    
     + Was the mean departure delay time per carrier related to the total number of flights per carrier? The answer should show a plot and use one sentence to address this question qualitatively.
+    
+```{r}
+count_carrier_delay <- summarize(group_by(flights,carrier),count =n(), mean_dep_delay=mean(dep_delay, na.rm=T))
+
+ggplot(count_carrier_delay, aes(x=count, y=mean_dep_delay)) +
+  geom_point(size=2) + 
+  geom_smooth(method="loess",se=TRUE,fullrange=FALSE, level=0.95) +
+  geom_text(label=count_carrier_delay$carrier, nudge_x=1500)
+```
+
+There doesn't appear to be any kind of clear link between number of flights and mean departure delay based on this data. Reasonable hypotheses before seeing this data may be either 1. Mean Dept delay increases with flight count - as there are more opportunities for errors to be made in organizing the flight... or 2. Mean Dept delay may decrease with flight count, as the number of flights increases the expertise of the airline, leading to better organization of flights. Neither of these hypotheses are supported by the data for NYC in 2013. There is no strong and clear linear relationship between flight count and mean departure delay.
+    
     + Was the mean delay time for a given time of departure related to the time of departure? The answer should show a plot and use one sentence to address this question qualitatively.
+    
+```{r}
+time_of_day_delay <- summarize(group_by(flights,sched_dep_time), mean_dep_delay=mean(dep_delay, na.rm=T))
+
+ggplot(time_of_day_delay, aes(x=sched_dep_time, y=mean_dep_delay)) +
+  geom_point(size=2) + 
+  geom_smooth(method="auto",se=TRUE,fullrange=FALSE, level=0.95)
+```
+
+The method of regression against these variables displays a high level of confidence in it's fit. This belies a strong relationship between sched_dep_time and mean_dep_delay. Around 1800-1900 during the day there is a much higher average delay time. If I were flying out of NYC in 2013 I would definitely try to schedule flights that depart at 5AM if I really don't want to be delayed.
 
 
 5. Load the `MASS` package, which contains the  [birthwt](https://stat.ethz.ch/R-manual/R-devel/library/MASS/html/birthwt.html) dataset, to answer the following questions. We will work toward identifying variables that are associated with low birthweight, both as a dichotomous outcome and a continuous one. HINT: The `MASS` package contains a `select` command that may compete with that from `dplyr`. If you have `dplyr` and `MASS` loaded simultaneously and want to use `dplyr`'s `select`, do it explicitly. For example, use `dplyr::select` rather than `select`. *(9 points)*
