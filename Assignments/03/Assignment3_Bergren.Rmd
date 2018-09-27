@@ -80,9 +80,9 @@ print(max_carrier)
     
 ```{r}
 # Get unique tailnums in June, July flights
-unique_tails <- distinct(filter(flights, month==6|month==7)['tailnum'])
+unique_tails <- distinct(filter(flights, month==6 | month==7)['tailnum'])
 # Get tails that contain M or P
-m_or_p_tails <- filter(unique_tails,grepl("M",tailnum)|grepl("P",tailnum))
+m_or_p_tails <- filter(unique_tails, grepl("M",tailnum) | grepl("P",tailnum))
 print("Number of tailnums from flights in june and july that contain the letter M or P.")
 print(nrow(m_or_p_tails))
 ```
