@@ -129,13 +129,28 @@ library("MASS")
 ```
 
 
-    + Take a look at the `birthwt` dataset (e.g., using `str()`) to get a sense of variables it contains. We will use the variables `low` and `bwt` as outcomes and `age`, `race`, `smoke`, `ht`, `ptl` as predictors. Create a new dataset `birthwt.clean` containing only the variables we are interested in, where (1) the variables `low`, `ht`, and `ptl` are renamed `low.birth.wt`, `hypertension`, and `prem.labor`, respectively, (2) all integer categories (i.e., `low.birth.wt`, `race`, `smoke`, `hypertension`, `prem.labor`) are converted to factors with intuitive labels, (3) the `race` variable does not include the `other` category, and (4) the `ptl` variable is dichotomized into two levels based on a positive or negative history of previous premature labor. 
+    + Take a look at the `birthwt` dataset (e.g., using `str()`) to get a sense of variables it contains. We will use the variables `low` and `bwt` as outcomes and `age`, `race`, `smoke`, `ht`, `ptl` as predictors. Create a new dataset `birthwt.clean` containing only the variables we are interested in, where;
+    (1) the variables `low`, `ht`, and `ptl` are renamed `low.birth.wt`, `hypertension`, and `prem.labor`, respectively, 
+    (2) all integer categories (i.e., `low.birth.wt`, `race`, `smoke`, `hypertension`, `prem.labor`) are converted to factors with intuitive labels, 
+    (3) the `race` variable does not include the `other` category, and 
+    (4) the `ptl` variable is dichotomized into two levels based on a positive or negative history of previous premature labor. 
     
 ```{r}
-str(birthwt)
-birthwt.clean <- dplyr::select(birthwt, low.birth.wt=low, birth.wt=bwt, age, race, smoke, hypertension=ht, prem.labor=ptl)
+#str(birthwt)
+# 1
+birthwt.clean <-  dplyr::select(birthwt,low.birth.wt=low, birth.wt=bwt, age, race, smoke, hypertension=ht, prem.labor=ptl)
+# 2
 integer_cols <- c('low.birth.wt','race','smoke','hypertension','prem.labor')
-birthwt.clean[,integer_cols] <- lapply(birthwt.clean[,integer_cols],factor)
+birthwt.clean$low.birth.wt <- factor(birthwt.clean$low.birth.wt, labels=c("normal","low"))
+birthwt.clean$race <- factor(birthwt.clean$race, labels=c("white","black","other"))
+birthwt.clean$smoke <- factor(birthwt.clean$smoke, labels=c("non-smoking","smoking"))
+birthwt.clean$hypertension <- factor(birthwt.clean$hypertension, labels=c("no-history","history"))
+# 3
+birthwt.clean <- filter(birthwt.clean, race!="other")
+# 4
+birthwt.clean$prem.labor <- factor(ifelse(as.numeric(as.character(birthwt.clean$prem.labor))==0, 0, 1))
+birthwt.clean$prem.labor <- factor(birthwt.clean$prem.labor, labels=c("no-history","history"))
+
 str(birthwt.clean)
 ```
 
