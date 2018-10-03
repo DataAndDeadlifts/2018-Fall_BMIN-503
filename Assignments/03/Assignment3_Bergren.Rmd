@@ -34,6 +34,8 @@ options(width = 400)
 ###Final Project - Repository
 1. Fork the [Final Project Repository](https://github.com/HimesGroup/BMIN503_Final_Project) to your GitHub account, and then pull this repository as a new project on your local computer by using the _Project_ menu in the upper-right-hand corner of RStudio, selecting a _New Project_, creating it via _Version Control_ -> _Git_ -> and entering your GitHub repository (remember to append `.git` to the copied `url`). You can now work on your final project from your computer, and easily push updates to your GitHub account, where the final version will be saved. A _Git_ tab will be available that you can use to _Pull_, _Commit_, and _Push_ changes between your local version and that on GitHub without having to use the command line. *(1 point for forking repository)*
 
+https://github.com/DataAndDeadlifts/BMIN503_Final_Project
+
 2. In 2-3 sentences, describe what question you will answer for your final project and what data will you use. There is a list of public data sources at the bottom of the [Optional Reading](https://github.com/HimesGroup/BMIN503/blob/master/Module1_Optional_Reading.Rmd) document that you can look through if you are having difficulty identifying public data. If you'd like help to pick a question, please let Blanca or Sherrie know soon. *(2 points)*
 
 > I plan to group and map protein structure characteristics to disease and pathologys. Perhaps predict proteins with known structure but no known link to disease using the classification/grouping model I build.
@@ -42,7 +44,7 @@ options(width = 400)
 
 > Dr. Jason Moore (jhmoore@upenn.edu), Professor and Director of Informatics in the Department of Biostatistics and Epidemiology
 > Roland L. Dunbrack (Roland.Dunbrack@fccc.edu), Jr. Ph.D., Adjunct Professor of Biochemistry & Biophysics
-> Dr. Zachary Ives (zives@cis.upenn.edu), Professor of Computer and Information Science 
+> Dr. Graciela Gonzalez (gragon@upenn.edu), Professor of Computer and Information Science 
 
 ### Cleaning and Transforming data, Descriptive Statistics and Regression
 4. Install and load the `nycflights13` package to do this problem. This package includes the [flights](https://www.rdocumentation.org/packages/nycflights13/versions/1.0.0/topics/flights) dataset, which contains information on 336,776 flights that departed from New York City in 2013 and is often used to learn `dplyr` commands. If you need more guided practice with `dplyr`, beyond what we did in class, you can go through this [vignette](https://cran.r-project.org/web/packages/dplyr/vignettes/dplyr.html). Use `dplyr` to answer the following questions by inserting code below each bullet to provide the answer directly. *(10 points)*
@@ -93,6 +95,7 @@ print(nrow(m_or_p_tails))
 ```{r}
 pop_dest_by_month <- summarize(group_by(flights,month,dest),count =n()) %>%
   filter(count==max(count))
+pop_dest_by_month
 ```
     
     + Was the mean departure delay time per carrier related to the total number of flights per carrier? The answer should show a plot and use one sentence to address this question qualitatively.
