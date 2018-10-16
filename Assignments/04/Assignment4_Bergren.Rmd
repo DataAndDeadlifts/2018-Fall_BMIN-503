@@ -1,0 +1,100 @@
+---
+title: "Assignment 4"
+author: "Data Science for Biomedical Informatics (BMIN503/EPID600)"
+output:
+  html_document:
+    toc: false 
+    depth: 3 
+    theme: paper 
+    highlight: tango
+---
+
+```{r set-options, echo=FALSE, cache=FALSE}
+options(width = 400)
+```   
+
+***
+
+###Instructions
+- Download the Rmd version of this file
+- Complete the questions below in RStudio using the Rmd file as a template 
+- Replace text in brackets with your answers. (There is no need to keep the brackets).
+- Save the Rmd document as Assignment4_*YOUR LAST NAME*.Rmd
+- Create an HTML version using knitr
+- Turn in completed Assignment4_*YOUR LAST NAME*.html file in Canvas under Assignments -> Assignment 4
+- Your assignment **must** be in html format or it will not be graded
+- Grades will be assigned according to point scheme below and computed as a percentage of total possible points
+- Lateness policy: If an urgent and unforseen circumstance comes up and you need an extension to turn in an assignment, please contact Blanca and/or Sherrie as soon as possible. Unless there is an arrangement in place, late assignments will be scored as follows: 
+    - 25% of total score if 1 day late
+    - 50% of total score if 2 days late
+    - 75%  of total score if 3 days late
+    - Assignment will not be graded if 4 or more days late
+- DUE DATE: 10/23/18
+
+
+###Final Project - Meeting Progress
+1. What have you learned from the faculty/staff (name, title, division/department) you have already met with to discuss your project? *(3 points)*
+
+I met with Dr. Roland Dunbrack and he told me that amyloid protein prediction was a field of interest and possibly achiveable with my data. He also educated me on the nature and function of disordered regions within protein, something I hope to implement into my model as a feature of the data.
+
+Meeting with Dr. Moore made me think about neural nets. One of his post-docs was an expert on them, and I'm considering using one as a model in the final project.
+
+INSERT GRACIELA MEETING NOTES HERE
+
+###Visualization, Machine Learning and Model Evaluation
+2. There is a simulated dataset [here](https://raw.githubusercontent.com/HimesGroup/BMIN503/master/DataFiles/assignment4_data.txt) of 100 measures taken for 1000 subjects. Read in the data file, and using some of the R functions discussed in class (show your code below!), answer the following questions by inserting code below each bullet to provide the answer directly. *(9 points)*
+
+```{r}
+library(dplyr)
+library(ggplot2)
+
+data <- read.table(url("https://raw.githubusercontent.com/HimesGroup/BMIN503/master/DataFiles/assignment4_data.txt"), header = TRUE)
+```
+
+    + How many cases/controls are in the dataset?
+    
+```{r}
+table(data$status)
+```
+    
+    + Use univariate statistical tests to find out which variables are individually associated with _status_ at a significance level <0.05. Name and list the variables with p<0.05, along with their p-values. The variable names can correspond to their order in the data (e.g., the first variable can be called "v1"). Among the signficant ones, which would you prioritize for further study? Hint: use a _for loop_ so that you can get the 100 p-values efficiently. 
+    
+```{r}
+data.case <- filter(data, status=='Case')
+data.control <- filter(data, status=='Control')
+
+col_p <- list()
+for (i in c(2:ncol(data))) {
+  #print(i)  
+  t_res = t.test(data.case[, i], data.control[, i])
+  p_val = t_res["p.value"][[1]]
+  if (p_val <= 0.05) {
+    col_p[colnames(data)[i]] <- p_val
+  }
+}
+```
+    
+    + Create a plot to visualize how the values of the individual variable with lowest p-value differ between cases and controls.
+
+```{r}
+lowest_p <- names(col_p[order(unlist(col_p))[[1]]])[1]
+boxplot(v1~status, data=data, xlab="Status", ylab="V1")
+```
+
+
+3. We will use hierarchical clustering with the independent variables (i.e. leave the _status_ variable out) to find out whether we can arrive at the _status_ label from the independent variables. Since we know there should be 2 categories, use this information in your analysis. Insert code below each bullet to provide answers. *(9 points)*
+    + Create a dendrogram using `hclust` and use the original _status_ variable to color the leaves.
+    + Use a table to show how many cases/controls are properly classified.
+    + In 1-2 sentences describe the relationship between the independent variables and _status_ based on your results.
+
+4. Compare the predictive accuracy of 1) Logistic regression and 2) Random forest multivariate models of _status_ as outcome and using all independent variables simultaneously. Hint: you can modify the random forest and cross validation code from the practicum files used in class. Insert code below each bullet to provide answers. *(12 points)*
+    + Create a logistic regression model. How many variables are significant at p<0.05? Store the predicted values of the training data into a variable called glm.pred.
+    + Create a random forest model. What are the most important predictors according to gini importance scores (i.e. MeanDecreaseGini)? Store the predicted values of the training data into a variable called rf.pred.
+    + Obtain 10-fold cross validation classification vectors for each model. Obtain AUC values and make an ROC plot that shows ROC curves corresponding to predictive accuracy using the training data as well as the 10-fold cross-validations. Note that there will be four ROC curves in your plot. What model was better at predicting _status_?
+    + How do the AUCs for the random forest compare to the internal out-of-bag error rate estimate reported by the randomForest function? Explain how the two measures were obtained.
+
+5. Rather than using all variables, create logistic regression and random forest predictive models using the "best" variables according to each method (i.e. the top-ranked variables according to standard metrics for each test). Insert code below each bullet to provide answers. *(9 points)* 
+    + Compare the top-ranked variables according to (1) univariate p-values <0.05 from logistic regression tests provided in question 2 and (2) by gini score for random forest from question 4. Are the top variables consistent?
+    + Create logistic regression and random forest models using the top variables. For each model, check the predictive accuracy using the training data as well as via 10-fold cross-validation. Report the corresponding AUC and create ROC plots as you did in question 4. How does the predictive accuracy of the models compare to those using the entire dataset obtained in question 4? Explain any differences in a few sentences.
+    + What models would be preferable in most situations, those you created in question 4 or 5?
+
