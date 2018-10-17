@@ -81,11 +81,54 @@ lowest_p <- names(col_p[order(unlist(col_p))[[1]]])[1]
 boxplot(v1~status, data=data, xlab="Status", ylab="V1")
 ```
 
-
 3. We will use hierarchical clustering with the independent variables (i.e. leave the _status_ variable out) to find out whether we can arrive at the _status_ label from the independent variables. Since we know there should be 2 categories, use this information in your analysis. Insert code below each bullet to provide answers. *(9 points)*
     + Create a dendrogram using `hclust` and use the original _status_ variable to color the leaves.
+    
+```{r}
+#install.packages("ggdendro")
+
+library(ggdendro)
+data.hclust <- hclust(dist(data[,1:ncol(data)]), method="complete") 
+data.dend <- dendro_data(as.dendrogram(data.hclust))
+labels <- label(data.dend)
+labels$status <- data$status[as.numeric(levels(labels$label))]
+ggplot(segment(data.dend)) +
+    geom_segment(aes(x=x, y=y, xend=xend, yend=yend)) +
+    geom_text(data=labels, aes(label=label, x=x, y=0, color=status), size=4)
+
+data.hclust.s <- hclust(dist(data[,1:ncol(data)]), method="single") 
+data.dend.s <- dendro_data(as.dendrogram(data.hclust.s))
+labels <- label(data.dend.s)
+labels$status <- data$status[as.numeric(levels(labels$label))]
+ggplot(segment(data.dend.s)) +
+    geom_segment(aes(x=x, y=y, xend=xend, yend=yend)) +
+    geom_text(data=labels, aes(label=label, x=x, y=0, color=status), size=4)
+
+data.hclust.a <- hclust(dist(data[,1:ncol(data)]), method="average") 
+data.dend.a <- dendro_data(as.dendrogram(data.hclust.a))
+labels <- label(data.dend.a)
+labels$status <- data$status[as.numeric(levels(labels$label))]
+ggplot(segment(data.dend.a)) +
+    geom_segment(aes(x=x, y=y, xend=xend, yend=yend)) +
+    geom_text(data=labels, aes(label=label, x=x, y=0, color=status), size=4)
+```
+
     + Use a table to show how many cases/controls are properly classified.
+
+```{r}
+data.hclust.cut <- cutree(data.hclust, 2) #Cut where there are 3 clusters
+table(data$status, data.hclust.cut)
+
+data.hclust.cut.s <- cutree(data.hclust.s, 2) #Cut where there are 3 clusters
+table(data$status, data.hclust.cut.s)
+
+data.hclust.cut.a <- cutree(data.hclust.a, 2) #Cut where there are 3 clusters
+table(data$status, data.hclust.cut.a)
+```
+    
     + In 1-2 sentences describe the relationship between the independent variables and _status_ based on your results.
+    
+By including all of the independent variables in classifying the status of each record - the clustering algorithm that tries to build "similar clusters" struggles to call observations accurately. It seems to have just as many true positives false negatives and just as many true negatives and false positives. Utilizing other methods, the classifier breaks down in its ability to call true negatives. It instead calls virtually everything a case.
 
 4. Compare the predictive accuracy of 1) Logistic regression and 2) Random forest multivariate models of _status_ as outcome and using all independent variables simultaneously. Hint: you can modify the random forest and cross validation code from the practicum files used in class. Insert code below each bullet to provide answers. *(12 points)*
     + Create a logistic regression model. How many variables are significant at p<0.05? Store the predicted values of the training data into a variable called glm.pred.
