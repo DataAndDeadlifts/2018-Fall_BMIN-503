@@ -47,6 +47,7 @@ INSERT GRACIELA MEETING NOTES HERE
 ```{r}
 library(dplyr)
 library(ggplot2)
+library(randomForest)
 
 data <- read.table(url("https://raw.githubusercontent.com/HimesGroup/BMIN503/master/DataFiles/assignment4_data.txt"), header = TRUE)
 ```
@@ -132,7 +133,34 @@ By including all of the independent variables in classifying the status of each 
 
 4. Compare the predictive accuracy of 1) Logistic regression and 2) Random forest multivariate models of _status_ as outcome and using all independent variables simultaneously. Hint: you can modify the random forest and cross validation code from the practicum files used in class. Insert code below each bullet to provide answers. *(12 points)*
     + Create a logistic regression model. How many variables are significant at p<0.05? Store the predicted values of the training data into a variable called glm.pred.
+    
+```{r}
+train_data_ind <- sample(seq_len(nrow(data)), size=floor(0.75*nrow(data)))
+
+train_data <- data[train_data_ind,]
+test_data <- data[-train_data_ind,]
+
+glm_all <- glm(status~., data=train_data, family="binomial")
+coef_less_sig <- summary(glm_all)$coeff[-1,4] < 0.05
+
+# Num significant variables
+print("Num coefficients that are significant: ")
+length(coef_less_sig[coef_less_sig==TRUE])
+
+# Train data predictions - they aren't good!
+glm.pred <- predict(glm_all, train_data)
+```
+    
     + Create a random forest model. What are the most important predictors according to gini importance scores (i.e. MeanDecreaseGini)? Store the predicted values of the training data into a variable called rf.pred.
+    
+```{r}
+data.rf <- randomForest(status ~ ., data=train_data, ntree=100, importance=TRUE)
+sorted_preds <- sort(data.rf$importance[,4], decreasing=TRUE)
+print("Top 5 predictors by MeanDecreaseGini")
+print(names(sorted_preds[1:5]))
+rf.pred <- predict(data.rf, train_data, type="prob")
+```
+    
     + Obtain 10-fold cross validation classification vectors for each model. Obtain AUC values and make an ROC plot that shows ROC curves corresponding to predictive accuracy using the training data as well as the 10-fold cross-validations. Note that there will be four ROC curves in your plot. What model was better at predicting _status_?
     + How do the AUCs for the random forest compare to the internal out-of-bag error rate estimate reported by the randomForest function? Explain how the two measures were obtained.
 
