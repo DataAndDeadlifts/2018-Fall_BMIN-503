@@ -39,7 +39,7 @@ I met with Dr. Roland Dunbrack and he told me that amyloid protein prediction wa
 
 Meeting with Dr. Moore made me think about neural nets. One of his post-docs was an expert on them, and I'm considering using one as a model in the final project.
 
-INSERT GRACIELA MEETING NOTES HERE
+I haven't been able to get a meeting with Dr. Graciela-Gonzalez but I'm working on it!
 
 ###Visualization, Machine Learning and Model Evaluation
 2. There is a simulated dataset [here](https://raw.githubusercontent.com/HimesGroup/BMIN503/master/DataFiles/assignment4_data.txt) of 100 measures taken for 1000 subjects. Read in the data file, and using some of the R functions discussed in class (show your code below!), answer the following questions by inserting code below each bullet to provide the answer directly. *(9 points)*
@@ -73,12 +73,16 @@ for (i in c(2:ncol(data))) {
     col_p[colnames(data)[i]] <- p_val
   }
 }
+col_p.sorted <- col_p[order(unlist(col_p))]
+col_p.sorted
 ```
+    
+Based on the significance, it appears that V1, V100, V23, V50, V65, and V67 are quite distant from the significance cutoff of 0.05. Based on that statistical inference, these variables would be good targets for more understanding. The others might require more work to make more useful for prediction of Case/Control.
     
     + Create a plot to visualize how the values of the individual variable with lowest p-value differ between cases and controls.
 
 ```{r}
-lowest_p <- names(col_p[order(unlist(col_p))[[1]]])[1]
+lowest_p <- names(col_p.sorted[[1]])
 boxplot(v1~status, data=data, xlab="Status", ylab="V1")
 ```
 
@@ -129,7 +133,7 @@ table(data$status, data.hclust.cut.a)
     
     + In 1-2 sentences describe the relationship between the independent variables and _status_ based on your results.
     
-By including all of the independent variables in classifying the status of each record - the clustering algorithm that tries to build "similar clusters" struggles to call observations accurately. It seems to have just as many true positives false negatives and just as many true negatives and false positives. Utilizing other methods, the classifier breaks down in its ability to call true negatives. It instead calls virtually everything a case.
+By including all of the independent variables in classifying the status of each record - the clustering algorithm that tries to build "similar clusters" struggles to call observations accurately. It seems to have just as many true positives and false negatives and just as many true negatives and false positives. Utilizing other methods, the classifier breaks down in its ability to call true negatives. It instead calls virtually everything a case.
 
 4. Compare the predictive accuracy of 1) Logistic regression and 2) Random forest multivariate models of _status_ as outcome and using all independent variables simultaneously. Hint: you can modify the random forest and cross validation code from the practicum files used in class. Insert code below each bullet to provide answers. *(12 points)*
     + Create a logistic regression model. How many variables are significant at p<0.05? Store the predicted values of the training data into a variable called glm.pred.
@@ -140,15 +144,16 @@ train_data_ind <- sample(seq_len(nrow(data)), size=floor(0.75*nrow(data)))
 train_data <- data[train_data_ind,]
 test_data <- data[-train_data_ind,]
 
-glm_all <- glm(status~., data=train_data, family="binomial")
-coef_less_sig <- summary(glm_all)$coeff[-1,4] < 0.05
+glm_all <- glm(status~., family=binomial(link='logit'), data=train_data)
 
+coef_less_sig <- summary(glm_all)$coeff[,4] <= 0.05
+#coef_less_sig
 # Num significant variables
 print("Num coefficients that are significant: ")
 length(coef_less_sig[coef_less_sig==TRUE])
 
-# Train data predictions - they aren't good!
-glm.pred <- predict(glm_all, train_data)
+# Train data predictions - they're perfect!
+glm.pred <- predict(glm_all, data, type="response")
 ```
     
     + Create a random forest model. What are the most important predictors according to gini importance scores (i.e. MeanDecreaseGini)? Store the predicted values of the training data into a variable called rf.pred.
@@ -158,14 +163,142 @@ data.rf <- randomForest(status ~ ., data=train_data, ntree=100, importance=TRUE)
 sorted_preds <- sort(data.rf$importance[,4], decreasing=TRUE)
 print("Top 5 predictors by MeanDecreaseGini")
 print(names(sorted_preds[1:5]))
-rf.pred <- predict(data.rf, train_data, type="prob")
+rf.pred <- as.numeric(factor(predict(data.rf, data, type="response")))
 ```
     
     + Obtain 10-fold cross validation classification vectors for each model. Obtain AUC values and make an ROC plot that shows ROC curves corresponding to predictive accuracy using the training data as well as the 10-fold cross-validations. Note that there will be four ROC curves in your plot. What model was better at predicting _status_?
+    
+```{r}
+library(boot)
+data.cv.glm <- cv.glm(train_data, glm_all, K=10)
+data.cv.rf <- cv.glm(train_data, data.rf, K=10)
+
+N = nrow(data)
+K = 10
+set.seed(1234)
+s = sample(1:K, size=N, replace=T)
+glm.pred.outputs <- vector(mode="numeric", length=N)
+obs.outputs <- vector(mode="numeric", length=N)
+rf.pred.outputs <- vector(mode="numeric", length=N)
+offset <- 0
+for(i in 1:K){
+	train <- filter(data, s != i)
+	test <- filter(data, s == i)
+    obs.outputs[1:length(s[s==i]) + offset] <- test$status
+
+    #GLM train/test
+	glm <- glm(status~., data=train, family=binomial(logit))
+    glm.pred.curr <- predict(glm, test, type="response")
+    glm.pred.outputs[1:length(s[s==i]) + offset] <- glm.pred.curr
+  #RF train/test
+	rf <- randomForest(status ~ ., data=train, ntree=100, importance=TRUE)
+    rf.pred.curr <- predict(rf, test, type="response")
+    rf.pred.outputs[1:length(s[s==i]) + offset] <- rf.pred.curr
+    
+	offset <- offset + length(s[s==i])
+}
+```
+```{r}
+library(pROC)
+#GLM RocAuc
+roc(data$status, glm.pred, ci=TRUE)
+# Plot roc curve of 
+plot.roc(data$status, glm.pred, ci=TRUE)
+plot.roc(obs.outputs, glm.pred.outputs, col="red", add=TRUE)
+legend("bottomright", legend=c("Training", "Cross-Validation"), col=c("black", "red"), lwd=2)
+glm.roc <- plot.roc(data$status, glm.pred, col="red", lwd=3, grid=TRUE)
+plot(ci.thresholds(glm.roc), col="grey")
+
+#RF RocAuc
+roc(data$status, rf.pred, ci=TRUE)
+# Plot roc curve of
+plot.roc(data$status, rf.pred, ci=TRUE)
+plot.roc(obs.outputs, rf.pred.outputs, col="red", add=TRUE)
+legend("bottomright", legend=c("Training", "Cross-Validation"), col=c("black", "red"), lwd=2)
+rf.roc <- plot.roc(data$status, rf.pred, col="red", lwd=3, grid=TRUE)
+plot(ci.thresholds(rf.roc), col="grey")
+
+```
+    
     + How do the AUCs for the random forest compare to the internal out-of-bag error rate estimate reported by the randomForest function? Explain how the two measures were obtained.
+
+The out-of-bag error rates of each cross cross validation model reflect a lower sensitivity and specificity at all thresholds when trained on random out-of-bag samples than the single model produced on all the data. The predictions on the entire dataset are probably overfitted and they perform extremely well (as expected) on the data they were trained on.
+
+The out-of-bag error rates were produced by taking 10 random samples of the data and getting the error rates when comparing predictions of those sample-trained models against the hold-out (test) set of that random sample. The training sets were produced earlier by training the two models on the entire dataset.
 
 5. Rather than using all variables, create logistic regression and random forest predictive models using the "best" variables according to each method (i.e. the top-ranked variables according to standard metrics for each test). Insert code below each bullet to provide answers. *(9 points)* 
     + Compare the top-ranked variables according to (1) univariate p-values <0.05 from logistic regression tests provided in question 2 and (2) by gini score for random forest from question 4. Are the top variables consistent?
+    
+```{r}
+len_top_p <- length(col_p.sorted)
+names(col_p.sorted)
+names(sorted_preds)[1:len_top_p]
+```
+
+It appears that a few values do seem to be more predictively useful than others. There were only 11 variables that produced statistically significant separations of the case/control variable based on t-tests of the data. V1, V100, V23, V50, V67 and V80 are in both sets of useful variables produced by random forest and logistic regression.
+    
     + Create logistic regression and random forest models using the top variables. For each model, check the predictive accuracy using the training data as well as via 10-fold cross-validation. Report the corresponding AUC and create ROC plots as you did in question 4. How does the predictive accuracy of the models compare to those using the entire dataset obtained in question 4? Explain any differences in a few sentences.
+    
+```{r}
+# We'll go with the top 11 variables
+# Log reg
+top_logreg_cols <- append(names(col_p.sorted),"status")
+top_glm <- glm(status~., data=data[,top_logreg_cols], family=binomial(logit))
+top_glm_preds <- predict(top_glm, data[, top_logreg_cols], type="response")
+
+#append(top_logreg, "status")
+top_rf_cols <- append(names(sorted_preds[1:len_top_p]),"status")
+top_rf <- randomForest(status~., data=data[,top_rf_cols], ntree=100, importance=TRUE)
+top_rf_preds <- as.numeric(factor(predict(top_rf, data[,top_rf_cols], type="response")))
+#append(top_rf, "status")
+N = nrow(data)
+K = 10
+set.seed(1234)
+s = sample(1:K, size=N, replace=T)
+glm_top.pred.outputs <- vector(mode="numeric", length=N)
+rf_top.pred.outputs <- vector(mode="numeric", length=N)
+top_obs.outputs <- vector(mode="numeric", length=N)
+offset <- 0
+for(i in 1:K){
+	train <- filter(data, s != i)
+	test <- filter(data, s == i)
+    top_obs.outputs[1:length(s[s==i]) + offset] <- test$status
+
+    #GLM train/test
+	glm <- glm(status~., data=train[,top_logreg_cols], family=binomial(logit))
+    glm.pred.curr <- predict(glm, test[,top_logreg_cols], type="response")
+    glm_top.pred.outputs[1:length(s[s==i]) + offset] <- glm.pred.curr
+  #RF train/test
+	rf <- randomForest(status ~ ., data=train[,top_rf_cols], ntree=100, importance=TRUE)
+    rf.pred.curr <- predict(rf, test[,top_rf_cols], type="response")
+    rf_top.pred.outputs[1:length(s[s==i]) + offset] <- rf.pred.curr
+    
+	offset <- offset + length(s[s==i])
+}
+```
+    
+```{r}
+#GLM RocAuc
+roc(data$status, top_glm_preds, ci=TRUE)
+# Plot roc curve of 
+plot.roc(data$status, top_glm_preds, ci=TRUE)
+plot.roc(top_obs.outputs, glm_top.pred.outputs, col="red", add=TRUE)
+legend("bottomright", legend=c("Training", "Cross-Validation"), col=c("black", "red"), lwd=2)
+glm_top.roc <- plot.roc(data$status, top_glm_preds, col="red", lwd=3, grid=TRUE)
+plot(ci.thresholds(glm_top.roc), col="grey")
+
+#RF RocAuc
+roc(data$status, top_rf_preds, ci=TRUE)
+# Plot roc curve of
+plot.roc(data$status, top_rf_preds, ci=TRUE)
+plot.roc(top_obs.outputs, rf_top.pred.outputs, col="red", add=TRUE)
+legend("bottomright", legend=c("Training", "Cross-Validation"), col=c("black", "red"), lwd=2)
+rf_top.roc <- plot.roc(data$status, top_rf_preds, col="red", lwd=3, grid=TRUE)
+plot(ci.thresholds(rf_top.roc), col="grey")
+```
+    
     + What models would be preferable in most situations, those you created in question 4 or 5?
 
+There's always a trade-off between performance and generalizability. If I were building a model that is meant to be deployed on data the model hasn't seen, I would opt for the simplified models in 5. These models are more likely to be useful and accurate on data the model wasn't trained on. These models haven't learned all of the idiosyncrasies of the training data it was given. Had it learned those quirks of that specific sample of data, it would predict future data based on those characteristics which the future data might not have - decreasing performance.
+
+The other benefit of the models in 5 is that they are more easily described to other stake-holders of the project. Being able to explain what you did and why it might work typically has value, so I would prefer to maintain that ability.
