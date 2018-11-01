@@ -1,0 +1,191 @@
+---
+title: "Assignment 5"
+author: "Data Science for Biomedical Informatics (BMIN503/EPID600)"
+output:
+  html_document:
+    toc: false 
+    depth: 3 
+    theme: paper 
+    highlight: tango
+---
+
+```{r global options, include=FALSE}
+#install.packages('tidyverse')
+#('tidyselect')
+#install.packages('sf')
+#install.packages('tidycensus')
+library(tidyverse)
+library(sf)
+library(tidycensus)
+library(leaflet)
+
+knitr::opts_chunk$set(warning=FALSE, message=FALSE)
+``` 
+
+***
+
+####Instructions
+- Download the Rmd version of this file
+- Complete the questions below in RStudio using the Rmd file as a template 
+- Replace text in brackets with your answers. (There is no need to keep the brackets).
+- Save the Rmd document as Assignment5_*YOUR LAST NAME*.Rmd
+- Create an HTML version using knitr
+- Turn in completed Assignment5_*YOUR LAST NAME*.html file in Canvas under Assignments -> Assignment 5
+- Your assignment **must** be in html format or it will not be graded
+- Grades will be assigned according to point scheme below and computed as a percentage of total possible points
+- Lateness policy: If an urgent and unforseen circumstance comes up and you need an extension to turn in an assignment, please contact Blanca and/or Sherrie as soon as possible. Unless there is an arrangement in place, late assignments will be scored as follows: 
+    - 25% of total score if 1 day late
+    - 50% of total score if 2 days late
+    - 75%  of total score if 3 days late
+    - Assignment will not be graded if 4 or more days late
+- DUE DATE: 11/8/18
+
+
+#### Final Project - Overview and Introduction
+1. Recall that you forked the [Final Project Repo](https://github.com/HimesGroup/BMIN503_Final_Project) and have downloaded it as a project to your local computer. Write the overview and introduction for your final project. The overview consists of 2-3 sentences summarizing the project and goals. For the introduction, the first paragraph describes the problem addressed, its significance, and some background to motivate the problem. In the second paragraph, explain why your problem is interdisciplinary, what fields can contribute to its understanding, and incorporate background related to what you learned from meeting with faculty/staff.
+
+> Overview. My final project investigates the possibility of predicting amyloid protein formation using readily available, quantitative protein characteristics. The approach I chose utilizes an n-gram solution that attempts to incorporate the "context" of the potential amyloid forming sequences and features alongside the n-gram-level (sub-sequence) features.
+
+> Introduction. Many lives are touched each year by the harmful effects of degenerative neurological disorders. Alzheimers, Chronic Traumatic Encephalopathy (CTE), Parkinson's and Huntington's are some of the chief disorders that many of us have heard of. The primary molecular culprits of these diseases are amyloid proteins. These microscopic brain destroyers are formed from otherwise normally functioning proteins. When made, they tend to accumulate into plaques, which are nigh untreatable. There exists a vested interest in understanding how and why these proteins form, including from which proteins they arise. A number have been identified and are query-able on a number of public datasets, but it is hard to say if the scientific community have discovered all of the polypeptidic culprits of amyloid-formation.
+
+>To better understand the problem I was looking at, I engaged with Dr. Moore, Dr. Dunbrack and Dr. Gonzalez. My idea was the least developed when I engaged Dr. Dunbrack - an experienced protein biochemist at the Penn Cancer Institute in North Philly. His experience in the field helped me hone my question and focus on amyloid protein formation prediction. He taught me about protein disorder - which is a characteristic of some proteins that resulted from the need to develop higher functions while avoiding the extreme cost of evolutionary precision. In short, a disordered stretch of protein is a less complex section of poly-peptide that is used to interact with other proteins, resulting in some sort of function. Some think they may play a role in amyloid formation.
+
+> Meeting with Dr. Moore was an attempt to better grasp the machine learning strategy I would employ. His suggestion given the broad dataset I was operating with was to utilize a neural net.
+
+> Dr. Graciela is a natural language processing expert here at the University of Pennsylvania. She warmed to my project idea quickly, recognizing its similarity to her research group's efforts at classifying obscene language in tweets. You see, human language - especially English - is highly nuanced in its use. In today's culture our language is predicated partly from the past and partly from the quickly evolving communities on the internet. The meaning behind certain turns-of-phrase or slang is hard to keep pace with. What Graciela's group had learned is that quantifying context is extremely difficult in language. To say any phrase is offensive is to say you perfectly understand and can quantify what every preceding and following utterance really means. Luckily for my problem, quantifying the context is less murky. The "words" in my sentences are amino acids - they exist in physical space, follow physical laws and have been very incisively defined in a great deal of physio-chemical detail. I can interrogate my protein by applying any number of quantifying biochemical calculations on any number of arbitrarily sliced sections of polypeptide sequence. There are plenty of engines, predictors and tools out there to aid me in this and I made it a goal to incorporate as many as time and computational limits allowed.
+
+#### Static Maps
+2. Create maps of county-level obesity rate estimates for adults living in the contiguous United States using BRFSS data from 2004 and 2014. These estimates have already been age-adjusted using Census population estimates to allow for comparison between counties and across time.
+    + Read in [BRFSS obesity data](https://raw.githubusercontent.com/HimesGroup/BMIN503/master/DataFiles/county_obesity_prevalence.csv) and [county polygons](https://raw.githubusercontent.com/HimesGroup/BMIN503/master/DataFiles/uscounties_2010.rds), and name them `obesity` and `counties`, respectively. Use the base _plot_ function to check that `counties` includes the polygon elements you expect. Hint: reading in an RDS file from a website requires that you run the file through a _decompressor_ before loading it via `readRDS`. R has a built-in decomopressor function called `gzcon`. *(2 points)*
+    
+```{r}
+library(dplyr)
+library(ggplot2)
+
+obesity <- read.csv(url("https://raw.githubusercontent.com/HimesGroup/BMIN503/master/DataFiles/county_obesity_prevalence.csv"))
+
+counties <- readRDS(gzcon(url("https://raw.githubusercontent.com/HimesGroup/BMIN503/master/DataFiles/uscounties_2010.rds")))
+
+counties.geo <- st_geometry(counties)
+plot(counties.geo)
+
+```
+
+    
+    + What were the 2004 and 2014 obesity rates for Orange County, California? For Orange County, Texas? Show all variables associated with these counties in the BRFSS and county polygons datasets. Aside from county names, what identifiers do these datasets share? *(2 points)*
+    
+```{r}
+leading_num <- "0500000US"
+# OJ county, CA
+cali.oj <- filter(obesity, state=="California", county=="Orange County")
+cali.oj.geoid <- paste(leading_num, formatC(select(cali.oj, fips.code), width=5, format="d", flag="0"), sep="")
+# OJ county, TX
+texa.oj <- filter(obesity, state=="Texas", county=="Orange County")
+texa.oj.geoid <- paste(leading_num, formatC(select(texa.oj, fips.code), width=5, format="d", flag="0"), sep="")
+
+# BRFSS
+cali.oj
+texa.oj
+
+# County Polygons
+# I know the NAME is overkill, just showing that its 'mappable' from dataset to dataset
+filter(counties, GEO_ID==cali.oj.geoid, NAME=="Orange")
+filter(counties, GEO_ID==texa.oj.geoid, NAME=="Orange")
+```
+
+> The datasets share the FIPS codes and the GEO_ID, one just has to format the FIPS code properly to map to the GEO_ID. As shown above. The county can be used in both as well, just have to make sure you add "county" for BRFSS and drop "county" for counties.
+    
+    + Merge the two datasets so that `counties` contains state names and obesity rates for 2004 and 2014. *(3 points)*
+    
+```{r}
+# Adding GeoID column to obesity
+GEOID_format_func <- function(x) paste(leading_num, formatC(x, width=5, format="d", flag="0"), sep="")
+
+obesity$GEO_ID <- as.character(lapply(obesity$fips.code, GEOID_format_func))
+
+counties_merged <- left_join(counties, select(obesity, state, GEO_ID, age.adjusted.percent.2004, age.adjusted.percent.2014))
+```
+
+    
+    + For each year (i.e., 2004 and 2014), create a static chloropleth map of county-level obesity rates for the US using _ggplot2_. Add a title with `ggtitle`, remove county borders with `lwd=0` in the `geom_sf` call, and incorporate custom theme elements with the user-created `my_theme()` function. Some code to get you started with these maps is offered below. Feel free to change plot aesthetics or choose a different color palette. Hint: be sure to set `eval = TRUE` for your map to load! *(4 points)*
+    
+```{r eval = TRUE}
+library(RColorBrewer)
+
+# Use a fixed color scale to more easily and compare obesity rates between maps 
+prev_min <- min(as.numeric(counties_merged$age.adjusted.percent.2004),as.numeric(counties_merged$age.adjusted.percent.2014))
+prev_max <- max(as.numeric(counties_merged$age.adjusted.percent.2004),as.numeric(counties_merged$age.adjusted.percent.2014))
+
+my_theme <- function() {
+  theme_minimal() +                                  
+  theme(axis.line = element_blank(),                 
+        axis.text = element_blank(),                 
+        axis.title = element_blank(),
+        panel.grid = element_line(color = "white"),  
+        legend.key.size = unit(0.8, "cm"),          
+        legend.text = element_text(size = 16),       
+        legend.title = element_text(size = 16),
+        plot.title = element_text(size = 22))      
+}
+
+myPalette <- colorRampPalette(brewer.pal(9, "YlOrRd"))
+
+# Replace "..." with your code
+ggplot() +
+  ggtitle("2004 Obesity Rates") +
+  geom_sf(data = counties_merged, aes(fill = as.numeric(age.adjusted.percent.2004)), lwd = 0) +
+  my_theme() +
+  scale_fill_gradientn(name = "Obesity rate (%)", colours = myPalette(100),
+                       limit = range(prev_min, prev_max))
+
+ggplot() +
+  ggtitle("2014 Obesity Rates") +
+  geom_sf(data = counties_merged, aes(fill = as.numeric(age.adjusted.percent.2014)), lwd = 0) +
+  my_theme() +
+  scale_fill_gradientn(name = "Obesity rate (%)", colours = myPalette(100),
+                       limit = range(prev_min, prev_max)) 
+
+```
+
+
+    + How did obesity rates in adults change between 2004 and 2014? (Qualitative answer is sufficient!) *(2 points)*    
+    
+> Judging by this code it looks like 2014 is worse overall than 2004 in almost every state except Colorado. The southeast US looks to have gotten much more obese than many other sections of the continental US over the same time span, but overall America is growing more obese overall.
+
+#### Interactive Maps
+3. Create an interactive map to visualize the change in adult obesity rates for all counties in the contiguous United States between 2004 and 2014.
+    + Create a new variable in `counties` that tracks the _change_ in obesity rate for each county between 2004 and 2014. Be sure to code this variable so that a positive value indicates an increase in the prevalence of obesity. *(1 point)*
+    + Create an interactive choropleth map using the _leaflet_ library to visualize changes in county-level obesity rates between 2004 and 2014. Be sure to include a legend and scalebar for your map. It may be helpful to use the _leaflet_ code from the practicum as a starting point, but be sure to incorporate the palette function provided below to color your map. The popup message for your map should be formatted like the following: *(5 points)*
+    
+> Philadelphia County, Pennsylvania <br/>
+> Change in obesity rate (2004-2014): 2.8% 
+
+
+```{r eval = FALSE}
+library(leaflet)
+
+# Bins continuous variables into an ordinal color scale appropriate for our data
+pal_fun <- colorBin(palette = brewer.pal(9, "RdBu")[c(1:5, 7)], 
+                    bins = c(-3, -1, 1, 5, 9, 13, 17), reverse = TRUE,
+                    NULL)
+
+```
+
+4. Create a choropleth map of a county-aggregated variable of your choice from the American Community Survey (ACS) 5-year estimates for 2012-2016. 
+    + Write a line of code to show how you could use a _tidycensus_ command to view variables from the ACS 5-year estimates for 2012-2016. Store the results as an object named `vars`. You do not need to show a preview of `vars`. *(1 point)*
+    + Use `get_acs` from _tidycensus_ to query a variable of your choice from the ACS 5-year estimates for 2012-2016 at the county level. For percentages, be sure to obtain both an estimate and a total. For full points, assign the ACS data you obtained to a data frame named `acs.data.` Make sure each county is represented by no more than a single row of `acs.data` and each column of `acs.data` contains no more than a single variable and has a meaningful name. We are only interested in mapping the estimate, so you can remove information about margin of error. Show the first six rows of `acs.data`. It is up to you which variable you would like to map. Possible options include:
+        + Poverty rate (estimate: B17010_002, total: B17010_001)
+        + Median household income (B19013_001)
+        + Median house value (B25077_001) *(4 points)* 
+        
+    + Merge `counties` with `acs.data` so that `counties` contains the ACS variables you have chosen to map. Show the first six rows of `counties`. *(2 points)*
+    + Make an interactive map with _leaflet_. Be sure to include a popup message, legend, and scalebar. An example palette function has been provided for you, but feel free to choose a different color palette. For the popup message, be sure to label "$" or "%" as appropriate *(4 points)*
+    + Describe in 1-2 sentences the geographic distribution of your chosen variable across the United States. Where is this rate/value the highest? *(1 point)*
+    
+```{r}
+
+pal_fun <- colorNumeric("BuPu", NULL)       
+
+```
+    
+    
