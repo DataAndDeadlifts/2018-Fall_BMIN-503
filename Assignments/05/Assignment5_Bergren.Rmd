@@ -62,7 +62,10 @@ knitr::opts_chunk$set(warning=FALSE, message=FALSE)
 library(dplyr)
 library(ggplot2)
 
-obesity <- read.csv(url("https://raw.githubusercontent.com/HimesGroup/BMIN503/master/DataFiles/county_obesity_prevalence.csv"))
+obesity <- read.csv(url("https://raw.githubusercontent.com/HimesGroup/BMIN503/master/DataFiles/county_obesity_prevalence.csv"), stringsAsFactors = FALSE)
+
+obesity$age.adjusted.percent.2004 <- as.double(obesity$age.adjusted.percent.2004)
+obesity$age.adjusted.percent.2014 <- as.double(obesity$age.adjusted.percent.2014)
 
 counties <- readRDS(gzcon(url("https://raw.githubusercontent.com/HimesGroup/BMIN503/master/DataFiles/uscounties_2010.rds")))
 
@@ -103,7 +106,7 @@ GEOID_format_func <- function(x) paste(leading_num, formatC(x, width=5, format="
 
 obesity$GEO_ID <- as.character(lapply(obesity$fips.code, GEOID_format_func))
 
-counties_merged <- left_join(counties, select(obesity, state, GEO_ID, age.adjusted.percent.2004, age.adjusted.percent.2014))
+counties_merged <- left_join(counties, select(obesity, state, GEO_ID, age.adjusted.percent.2004, age.adjusted.percent.2014, county))
 ```
 
     
@@ -113,8 +116,8 @@ counties_merged <- left_join(counties, select(obesity, state, GEO_ID, age.adjust
 library(RColorBrewer)
 
 # Use a fixed color scale to more easily and compare obesity rates between maps 
-prev_min <- min(as.numeric(counties_merged$age.adjusted.percent.2004),as.numeric(counties_merged$age.adjusted.percent.2014))
-prev_max <- max(as.numeric(counties_merged$age.adjusted.percent.2004),as.numeric(counties_merged$age.adjusted.percent.2014))
+prev_min <- min(pmin(counties_merged$age.adjusted.percent.2004,counties_merged$age.adjusted.percent.2014),na.rm=T)
+prev_max <- max(pmax(counties_merged$age.adjusted.percent.2004, counties_merged$age.adjusted.percent.2014),na.rm=T)
 
 my_theme <- function() {
   theme_minimal() +                                  
@@ -155,6 +158,12 @@ ggplot() +
 #### Interactive Maps
 3. Create an interactive map to visualize the change in adult obesity rates for all counties in the contiguous United States between 2004 and 2014.
     + Create a new variable in `counties` that tracks the _change_ in obesity rate for each county between 2004 and 2014. Be sure to code this variable so that a positive value indicates an increase in the prevalence of obesity. *(1 point)*
+    
+```{r}
+counties_merged$age.adjusted.percent.change <- (counties_merged$age.adjusted.percent.2014 - counties_merged$age.adjusted.percent.2004)
+```
+
+    
     + Create an interactive choropleth map using the _leaflet_ library to visualize changes in county-level obesity rates between 2004 and 2014. Be sure to include a legend and scalebar for your map. It may be helpful to use the _leaflet_ code from the practicum as a starting point, but be sure to incorporate the palette function provided below to color your map. The popup message for your map should be formatted like the following: *(5 points)*
     
 > Philadelphia County, Pennsylvania <br/>
@@ -168,6 +177,28 @@ library(leaflet)
 pal_fun <- colorBin(palette = brewer.pal(9, "RdBu")[c(1:5, 7)], 
                     bins = c(-3, -1, 1, 5, 9, 13, 17), reverse = TRUE,
                     NULL)
+
+# Pop-up message
+pu_message <- paste0(counties_merged$county,
+                     ", ",
+                     counties_merged$state,
+                     " <br>Change in obesity rate (2004-2014): ",
+                     round(counties_merged$age.adjusted.percent.change, 1),
+                     "%"
+                     )
+
+leaflet(counties_merged) %>%
+  addPolygons(stroke = FALSE,
+              fillColor = ~pal_fun(age.adjusted.percent.change),
+              fillOpacity = 0.5, smoothFactor = 0.5,
+              popup = pu_message) %>%
+  addProviderTiles(providers$CartoDB.Positron) %>%
+  addLegend("bottomright",                           
+            pal=pal_fun,                             
+            values=~age.adjusted.percent.change,
+            title = 'Poverty rate',
+            opacity = 1) %>%
+  addScaleBar()
 
 ```
 
