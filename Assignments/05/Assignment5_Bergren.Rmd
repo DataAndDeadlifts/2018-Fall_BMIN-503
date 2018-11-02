@@ -10,10 +10,11 @@ output:
 ---
 
 ```{r global options, include=FALSE}
+#install.packages('tidyselect')
 #install.packages('tidyverse')
-#('tidyselect')
 #install.packages('sf')
 #install.packages('tidycensus')
+#install.packages('leaflet')
 library(tidyverse)
 library(sf)
 library(tidycensus)
@@ -69,6 +70,7 @@ obesity$age.adjusted.percent.2014 <- as.double(obesity$age.adjusted.percent.2014
 
 counties <- readRDS(gzcon(url("https://raw.githubusercontent.com/HimesGroup/BMIN503/master/DataFiles/uscounties_2010.rds")))
 
+counties$GEO_ID <- as.character(counties$GEO_ID)
 counties.geo <- st_geometry(counties)
 plot(counties.geo)
 
@@ -153,7 +155,7 @@ ggplot() +
 
     + How did obesity rates in adults change between 2004 and 2014? (Qualitative answer is sufficient!) *(2 points)*    
     
-> Judging by this code it looks like 2014 is worse overall than 2004 in almost every state except Colorado. The southeast US looks to have gotten much more obese than many other sections of the continental US over the same time span, but overall America is growing more obese overall.
+> It looks like 2014 is worse overall than 2004 in almost every state except Colorado. The southeast US looks to have gotten much more obese than many other sections of the continental US over the same time span, but overall America is growing more obese.
 
 #### Interactive Maps
 3. Create an interactive map to visualize the change in adult obesity rates for all counties in the contiguous United States between 2004 and 2014.
@@ -196,7 +198,7 @@ leaflet(counties_merged) %>%
   addLegend("bottomright",                           
             pal=pal_fun,                             
             values=~age.adjusted.percent.change,
-            title = 'Poverty rate',
+            title = 'Obesity % change',
             opacity = 1) %>%
   addScaleBar()
 
@@ -204,19 +206,77 @@ leaflet(counties_merged) %>%
 
 4. Create a choropleth map of a county-aggregated variable of your choice from the American Community Survey (ACS) 5-year estimates for 2012-2016. 
     + Write a line of code to show how you could use a _tidycensus_ command to view variables from the ACS 5-year estimates for 2012-2016. Store the results as an object named `vars`. You do not need to show a preview of `vars`. *(1 point)*
+    
+```{r}
+census_api_key("955a82713a4dbf05229b834cc070c79fcc5acb04", install=TRUE, overwrite=TRUE)
+readRenviron("~/.Renviron")
+
+vars <- load_variables(year = 2016, "acs5")
+
+```
+
     + Use `get_acs` from _tidycensus_ to query a variable of your choice from the ACS 5-year estimates for 2012-2016 at the county level. For percentages, be sure to obtain both an estimate and a total. For full points, assign the ACS data you obtained to a data frame named `acs.data.` Make sure each county is represented by no more than a single row of `acs.data` and each column of `acs.data` contains no more than a single variable and has a meaningful name. We are only interested in mapping the estimate, so you can remove information about margin of error. Show the first six rows of `acs.data`. It is up to you which variable you would like to map. Possible options include:
         + Poverty rate (estimate: B17010_002, total: B17010_001)
         + Median household income (B19013_001)
         + Median house value (B25077_001) *(4 points)* 
         
+```{r}
+#EDUCATIONAL ATTAINMENT FOR THE POPULATION 25 YEARS AND OVER (Bachelor's Degree)
+filter(vars, name=="B15003_022")$concept
+get_acs(geography = "county", variables = "B15003_022")
+acs.data <- select(get_acs(geography = "county", variables = "B15003_022"), GEOID, NAME, estimate)
+acs.data$NAME.full <- acs.data$NAME
+acs.data <- subset(acs.data, select=-c(NAME))
+# Check that all counties are only present once
+nrow(filter(summarize(group_by(acs.data, NAME.full), n=n()), n>1))==0
+
+head(acs.data)
+```
+
     + Merge `counties` with `acs.data` so that `counties` contains the ACS variables you have chosen to map. Show the first six rows of `counties`. *(2 points)*
-    + Make an interactive map with _leaflet_. Be sure to include a popup message, legend, and scalebar. An example palette function has been provided for you, but feel free to choose a different color palette. For the popup message, be sure to label "$" or "%" as appropriate *(4 points)*
-    + Describe in 1-2 sentences the geographic distribution of your chosen variable across the United States. Where is this rate/value the highest? *(1 point)*
     
 ```{r}
+# Paste the leading num to my geo ids
+acs.data$GEO_ID <- as.character(paste(leading_num, acs.data$GEOID, sep=""))
 
-pal_fun <- colorNumeric("BuPu", NULL)       
+counties.acs <- right_join(
+  select(acs.data, GEO_ID, estimate, NAME.full), 
+  counties, 
+  by="GEO_ID"
+  )
 
 ```
+
+    
+    + Make an interactive map with _leaflet_. Be sure to include a popup message, legend, and scalebar. An example palette function has been provided for you, but feel free to choose a different color palette. For the popup message, be sure to label "$" or "%" as appropriate *(4 points)*
+    
+```{r}
+pal_fun.acs <- colorQuantile(palette = "PiYG", domain=counties.acs$estimate, n = 10, reverse = F)
+
+# Pop-up message
+pu_message.acs <- paste0(counties.acs$NAME.full,
+                     " <br>Estimate holding Bachelor's Degree: ",
+                     counties.acs$estimate
+                     )
+
+leaflet(counties.acs) %>%
+  addPolygons(data=counties,
+              stroke = FALSE,
+              fillColor = ~pal_fun.acs(counties.acs$estimate),
+              fillOpacity = 0.5, smoothFactor = 0.5,
+              popup = pu_message.acs) %>%
+  addProviderTiles(providers$CartoDB.Positron) %>%
+  addLegend("bottomright",
+            pal=pal_fun.acs,
+            values=~estimate,
+            title = "Bachelor's degree attainment<br>for the Population 25 and over, 2016",
+            opacity = 1) %>%
+  addScaleBar()
+```
+
+    
+    + Describe in 1-2 sentences the geographic distribution of your chosen variable across the United States. Where is this rate/value the highest? *(1 point)*
+    
+> The educational attainment of bachelor's degrees tends to gravitate toward regions of high population. The most under-educated region of America tends to concentrate in rural areas. Namely the center of America (heartland) and Southeast. 
     
     
