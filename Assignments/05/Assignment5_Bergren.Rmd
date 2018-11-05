@@ -224,23 +224,31 @@ vars <- load_variables(year = 2016, "acs5")
 #EDUCATIONAL ATTAINMENT FOR THE POPULATION 25 YEARS AND OVER (Bachelor's Degree)
 filter(vars, name=="B15003_022")$concept
 get_acs(geography = "county", variables = "B15003_022")
-acs.data <- select(get_acs(geography = "county", variables = "B15003_022"), GEOID, NAME, estimate)
-acs.data$NAME.full <- acs.data$NAME
-acs.data <- subset(acs.data, select=-c(NAME))
-# Check that all counties are only present once
-nrow(filter(summarize(group_by(acs.data, NAME.full), n=n()), n>1))==0
+acs.data <- get_acs(dataset="acs", geography = "county", year=2016, variables = c("B15003_001","B15003_022"))#, GEOID, NAME, estimate)
+# Percent bachelor
+percent.bachelors <- acs.data %>%
+  group_by(GEOID) %>%  # return only one row per GEOID
+  mutate(bach_est = estimate[variable == "B15003_022"],  # extract and rename number of people that have achieved a bachelor's
+         bach_tot = estimate[variable == "B15003_001"],  # extract and rename total number of people surveyed
+         percent_bach = round((bach_est/bach_tot)*100,2)) %>%   # multiply by 100 to get rate as a percentage
+  select(GEOID, NAME, bach_est, bach_tot, percent_bach) %>%
+  unique()
 
-head(acs.data)
+#acs.data$NAME.full <- acs.data$NAME
+#acs.data <- subset(acs.data, select=-c(NAME))
+# Check that all counties are only present once
+nrow(filter(summarize(group_by(percent.bachelors, NAME), n=n()), n>1))==0
+head(percent.bachelors)
 ```
 
     + Merge `counties` with `acs.data` so that `counties` contains the ACS variables you have chosen to map. Show the first six rows of `counties`. *(2 points)*
     
 ```{r}
 # Paste the leading num to my geo ids
-acs.data$GEO_ID <- as.character(paste(leading_num, acs.data$GEOID, sep=""))
+percent.bachelors$GEO_ID <- as.character(paste(leading_num, percent.bachelors$GEOID, sep=""))
 
 counties.acs <- right_join(
-  select(acs.data, GEO_ID, estimate, NAME.full), 
+  percent.bachelors, 
   counties, 
   by="GEO_ID"
   )
@@ -253,25 +261,25 @@ head(counties.acs)
     + Make an interactive map with _leaflet_. Be sure to include a popup message, legend, and scalebar. An example palette function has been provided for you, but feel free to choose a different color palette. For the popup message, be sure to label "$" or "%" as appropriate *(4 points)*
     
 ```{r}
-pal_fun.acs <- colorQuantile(palette = "PiYG", domain=counties.acs$estimate, n = 10, reverse = F)
+pal_fun.acs <- colorQuantile(palette = "BrBG", domain=counties.acs$estimate, n = 10, reverse = F)
 
 # Pop-up message
 pu_message.acs <- paste0(counties.acs$NAME.full,
-                     " <br>Estimate holding Bachelor's Degree: ",
-                     counties.acs$estimate
+                     " <br>Percentage holding Bachelor's Degree: ",
+                     counties.acs$percent_bach
                      )
 
 leaflet(counties.acs) %>%
   addPolygons(data=counties,
               stroke = FALSE,
-              fillColor = ~pal_fun.acs(counties.acs$estimate),
+              fillColor = ~pal_fun.acs(counties.acs$percent_bach),
               fillOpacity = 0.5, smoothFactor = 0.5,
               popup = pu_message.acs) %>%
   addProviderTiles(providers$CartoDB.Positron) %>%
   addLegend("bottomright",
             pal=pal_fun.acs,
-            values=~estimate,
-            title = "Bachelor's degree attainment<br>for the Population 25 and over, 2016",
+            values=~percent_bach,
+            title = "Bachelor's degree attainment (percentage)<br>for the Population 25 and over, 2016",
             opacity = 1) %>%
   addScaleBar()
 ```
@@ -279,6 +287,5 @@ leaflet(counties.acs) %>%
     
     + Describe in 1-2 sentences the geographic distribution of your chosen variable across the United States. Where is this rate/value the highest? *(1 point)*
     
-> The educational attainment of bachelor's degrees tends to gravitate toward regions of high population. The most under-educated region of America tends to concentrate in rural areas. Namely the center of America (heartland) and rural South-Southeast. 
-    
+> The educational attainment of bachelor's degrees tends to gravitate toward regions of high population (cities) and away from rural areas. The region with the least proportion of over 25 year olds with a bachelor's degree are in rural areas, namely the western mountains and rural South-Southeast.
     
