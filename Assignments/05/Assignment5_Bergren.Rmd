@@ -155,7 +155,7 @@ ggplot() +
 
     + How did obesity rates in adults change between 2004 and 2014? (Qualitative answer is sufficient!) *(2 points)*    
     
-> It looks like 2014 is worse overall than 2004 in almost every state except Colorado. The southeast US looks to have gotten much more obese than many other sections of the continental US over the same time span, but overall America is growing more obese.
+> It looks like 2014 is very much worse overall than 2004 in almost every state except Colorado. The southeast US looks to have gotten much more obese than many other sections of the continental US over the same time span, but overall America is growing more obese.
 
 #### Interactive Maps
 3. Create an interactive map to visualize the change in adult obesity rates for all counties in the contiguous United States between 2004 and 2014.
@@ -245,6 +245,8 @@ counties.acs <- right_join(
   by="GEO_ID"
   )
 
+head(counties.acs)
+
 ```
 
     
@@ -277,6 +279,6 @@ leaflet(counties.acs) %>%
     
     + Describe in 1-2 sentences the geographic distribution of your chosen variable across the United States. Where is this rate/value the highest? *(1 point)*
     
-> The educational attainment of bachelor's degrees tends to gravitate toward regions of high population. The most under-educated region of America tends to concentrate in rural areas. Namely the center of America (heartland) and Southeast. 
+> The educational attainment of bachelor's degrees tends to gravitate toward regions of high population. The most under-educated region of America tends to concentrate in rural areas. Namely the center of America (heartland) and rural South-Southeast. 
     
     
