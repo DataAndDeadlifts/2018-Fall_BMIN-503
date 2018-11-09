@@ -239,6 +239,7 @@ percent.bachelors <- acs.data %>%
 # Check that all counties are only present once
 nrow(filter(summarize(group_by(percent.bachelors, NAME), n=n()), n>1))==0
 head(percent.bachelors)
+
 ```
 
     + Merge `counties` with `acs.data` so that `counties` contains the ACS variables you have chosen to map. Show the first six rows of `counties`. *(2 points)*
@@ -261,10 +262,10 @@ head(counties.acs)
     + Make an interactive map with _leaflet_. Be sure to include a popup message, legend, and scalebar. An example palette function has been provided for you, but feel free to choose a different color palette. For the popup message, be sure to label "$" or "%" as appropriate *(4 points)*
     
 ```{r}
-pal_fun.acs <- colorQuantile(palette = "BrBG", domain=counties.acs$estimate, n = 10, reverse = F)
+pal_fun.acs <- colorQuantile(palette = "BrBG", domain=counties.acs$percent_bach, n = 10, reverse = F)
 
 # Pop-up message
-pu_message.acs <- paste0(counties.acs$NAME.full,
+pu_message.acs <- paste0(counties.acs$NAME.x,
                      " <br>Percentage holding Bachelor's Degree: ",
                      counties.acs$percent_bach
                      )
