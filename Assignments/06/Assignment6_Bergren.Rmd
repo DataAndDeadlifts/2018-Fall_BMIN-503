@@ -1,0 +1,52 @@
+---
+title: "Assignment 6"
+author: "Data Science for Biomedical Informatics (BMIN503/EPID600)"
+output:
+  html_document:
+    toc: false 
+    depth: 3 
+    theme: paper 
+    highlight: tango
+---
+***
+
+#### Instructions
+- Download the Rmd version of this file
+- Complete the questions below in RStudio using the Rmd file as a template 
+- Replace text in brackets with your answers. (There is no need to keep the brackets).
+- Save the Rmd document as Assignment6_*YOUR LAST NAME*.Rmd
+- Create an HTML version using knitr
+- Turn in completed Assignment6_*YOUR LAST NAME*.html file in Canvas under Assignments -> Assignment 6
+- Your assignment **must** be in html format or it will not be graded
+- Grades will be assigned according to point scheme below and computed as a percentage of total possible points
+- Lateness policy: If an urgent and unforseen circumstance comes up and you need an extension to turn in an assignment, please contact Blanca and/or Sherrie as soon as possible. Unless there is an arrangement in place, late assignments will be scored as follows: 
+    - 25% of total score if 1 day late
+    - 50% of total score if 2 days late
+    - 75%  of total score if 3 days late
+    - Assignment will not be graded if 4 or more days late
+- DUE DATE: 11/27/18
+
+
+#### Final Project - Methods and Results Draft
+1. Using your local forked [Final Project Repo](https://github.com/HimesGroup/BMIN503_Final_Project), write a draft of the Methods and Results sections following the instructions provided in the Rmd file where you drafted the Introduction. You should be using an RStudio Project to pull/push changes as you work. Edit your own README.md file to describe what your project is about and what files are present in the repository.
+
+> ## Methods
+> The work of this project was split into two general parts. Firstly I utilized python extensively to download, format and parse my data into the full training dataset.
+
+> My source was firstly the XML formatted records of each protein manually annotated and curated within Uniprot. These files contained the approved sequences and other data on each protein in uniprot. The other second data source is the amyloid database at amypro.net, this dataset has the amyloid sequences of every protein found to form amyloid protein.
+
+> To process the protein sequences I utilized the biopython package to perform a number of calculations on each protein sequence and extract a number of protein-level features. To n-gram each sequence I used the nltk package to process the protein sequences.
+
+> There was some effort in extracting, using NLP, the comments and other features included in the XML other than the protein sequence. These features ended up being difficult to parse and include in the final dataset so they were excluded.
+
+> ## Results
+
+#### Gene Expression
+2. Analyse GEO dataset [GSE27973](http://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE27973) to identify genes that are differentially expressed in airway epithelial cells in response to cigarette smoke extract (CSE) exposure. The procedure you need to follow is similar to that followed in Practicum 16. Specifically,
+    + Download the raw CEL files from GEO, create an expression set, and include a phenotype variable corresponding to `treatment` with four levels as can be inferred from the GEO submission.  (*2 points*)
+    + Look at a boxplot of expression values for each sample and see whether any seem to be outliers. (*2 points*)
+    + Perform RMA on the samples and create a new intensity boxplot. (*2 points*)
+    + Perform a differential expression analysis, and report how many probes are significantly differentially expressed between the *CSE* and *medium* samples based on a Benjamini-Hochberg corrected p-value threshold of 0.05. Note: it is OK to do an analysis without taking into account donor status. That is, compare sample expression based on treatment status only. (*3 points*)
+    + What is the top differentially expressed gene? Create a boxplot of its normalized intensities across **all** treatment groups. How many probes corresponding to this gene are among the top hits? (*3 points*)
+    + Create a heatmap using the significantly differentially expressed genes and samples from all conditions. How do the treatment groups cluster? What does this indicate (a qualitative answer is sufficient)? (*3 points*)
+    
