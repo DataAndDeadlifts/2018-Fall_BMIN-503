@@ -1,0 +1,77 @@
+---
+title: "Practicum 16: Microbiome"
+author: "Data Science for Biomedical Informatics (BMIN503/EPID600)"
+output: 
+  html_document:
+    toc: true
+    toc_float: 
+        collapsed: false
+        smooth_scroll: true
+    depth: 4 
+    theme: paper 
+    highlight: tango
+---
+***
+New packages to install for this practicum:
+```{r, eval=FALSE}
+install.packages("reshape")
+```
+***
+
+This practicum is based on code written by Casey-Bartow McKenney (a GCB PhD Student working in Elizabeth Grice's Lab). We will use a [relative abundance file](https://raw.githubusercontent.com/HimesGroup/BMIN503/master/DataFiles/Sample_Rel_Abund.txt) containing data on fractions of species measured for 4 samples. 
+
+Let's load the file and verify that the percentages for each sample sum to one.
+```{r eval=TRUE, message=FALSE, warning=FALSE}
+library(tidyverse)
+microbiome.data <- read.table(url("https://raw.githubusercontent.com/HimesGroup/BMIN503/master/DataFiles/Sample_Rel_Abund.txt"), header=TRUE)
+microbiome.data
+microbiome.data %>%
+  select(-Genus) %>%
+  summarize_each(funs(sum))
+```
+
+We will make a barplot of relative abundance of species for each sample. To do this, we will `melt` our data.frame so that the sample names are added as a column variable to the relative abundance file. Melting is a common data.frame transformation that can facilitate creation of ggplots. A melted data.frame contains rows corresponding to one observation per sample and per variable. The package `reshape` contains functions to melt data.
+
+```{r eval=TRUE, message=FALSE}
+library(reshape)
+microbiome.melt <- melt(microbiome.data, id.vars="Genus")
+microbiome.melt
+colnames(microbiome.melt) <- c("Genus", "Sample", "Proportion")
+head(microbiome.melt)
+```
+
+Now let's make the barplot:
+```{r eval=TRUE, message=FALSE}
+ggplot(data=microbiome.melt, aes(x=Sample, y=Proportion, fill=Genus)) +
+  geom_bar(stat="identity") + 
+  xlab("Samples") + ylab("Relative Abundance") +
+  theme_bw() 
+```
+
+To practice obtaining statistics for this type of data to answer the question of whether the distribution of a species across two different sample types is significantly different, we will create a test dataset containing Clostridium abundance for 12 samples.
+```{r eval=TRUE, message=FALSE}
+test.proportions <- c(0.0,0.10,0.15,0.11,0.17,0.25,0.53,0.41,0.65,0.45,0.40,0.50)
+test.sample <- c(rep("Skin", 6), rep("Stool", 6))
+test.Clost <- data.frame(test.sample, test.proportions)
+head(test.Clost)
+
+ggplot(data=test.Clost, aes(x=test.sample, y=test.proportions)) +
+  geom_boxplot(fill="lightblue") +
+  geom_jitter(width=.10, size=1) +
+  theme_bw()
+```
+
+To test whether the proportions are different, we can use a Wilcoxon Rank Sums test. 
+```{r eval=TRUE, message=FALSE}
+wilcox.test(data=test.Clost, test.proportions ~ test.sample)
+```
+
+If we were performing this test for multiple genera, then we would have to adjust our p-values to account for multiple comparisons made. The function `p.adjust` can compute adjusted p-values using a variety of approaches, including Bonferroni (method="bonferroni") and Benjamini & Hochberg (method="BH"). Adjusted p-values are sometimes referred to as q-values.
+
+```{r eval=TRUE, message=FALSE}
+my.pvals <- c(0.530, 0.240, 0.034, 0.026, 0.004)
+my.pvals.adj <- p.adjust(my.pvals, method = "BH")
+my.pvals.adj
+```
+
+In this illustration, of three nominally significant p-values, only one is significant after multiple comparisons correction. 

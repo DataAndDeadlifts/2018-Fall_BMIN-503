@@ -41,12 +41,100 @@ output:
 
 > ## Results
 
+```{r}
+source("http://bioconductor.org/biocLite.R")
+biocLite("GEOquery")
+biocLite("oligo")
+biocLite("limma")
+biocLite("hgu133plus2.db")
+biocLite("pd.hg.u133.plus.2")
+biocLite("viridis")
+install.packages("gplots")
+```
+
 #### Gene Expression
 2. Analyse GEO dataset [GSE27973](http://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE27973) to identify genes that are differentially expressed in airway epithelial cells in response to cigarette smoke extract (CSE) exposure. The procedure you need to follow is similar to that followed in Practicum 16. Specifically,
     + Download the raw CEL files from GEO, create an expression set, and include a phenotype variable corresponding to `treatment` with four levels as can be inferred from the GEO submission.  (*2 points*)
+    
+    
+```{r}
+library(GEOquery)
+getGEOSuppFiles("GSE27973")
+untar("./GSE27973/GSE27973_RAW.tar", exdir="./GSE27973/data")
+```
+
+
+```{r, eval=TRUE}
+library(oligo)
+library(limma)
+library(viridis)
+
+celFiles <- list.celfiles("./GSE27973/data", full.names=TRUE, listGzipped=TRUE)
+raw.data <- read.celfiles(celFiles)
+pData(raw.data)
+
+pData(raw.data)$treatment <- c(rep("medium"), rep("RV16"), rep("CSE"), rep("RV16_and_CSE"))
+
+pData(raw.data)
+```
+    
+    
     + Look at a boxplot of expression values for each sample and see whether any seem to be outliers. (*2 points*)
+    
+```{r, eval=TRUE}
+par(mar=c(9,5,1,1))
+boxplot(raw.data, col="red", main="RAW Expression Values", las=2)
+```
+    
+> It looks like the samples vary quite a bit, they all seem to have really high error bars too. In terms out 'outliers' I might point at GSM692115 for being high, GSM692118 for being lowand GSM69219 for being high - its hard to really say for certain though.
+    
     + Perform RMA on the samples and create a new intensity boxplot. (*2 points*)
+    
+```{r, eval=TRUE}
+GSE27973.rma <- rma(raw.data)
+
+boxplot(GSE27973.rma, col="blue", main="RMA Expression Values")
+```
+    
+> This looks a lot more uniform! Thanks RMA ;)
+    
     + Perform a differential expression analysis, and report how many probes are significantly differentially expressed between the *CSE* and *medium* samples based on a Benjamini-Hochberg corrected p-value threshold of 0.05. Note: it is OK to do an analysis without taking into account donor status. That is, compare sample expression based on treatment status only. (*3 points*)
+    
+```{r, eval=TRUE}
+GSE27973.qc <- raw.data[, !sampleNames(raw.data) %in% "GSE27973.CEL.gz"]
+GSE27973.qc.rma <- rma(GSE27973.qc)
+design <- model.matrix(~ -1+factor(GSE27973.qc.rma$treatment))
+colnames(design) <- levels(factor(GSE27973.qc.rma$treatment))
+design
+
+#Fit a linear model, according to limma package implementation, to expression data using design matrix model
+fit <- lmFit(GSE27973.qc.rma, design)
+#Create contrast groups of interest
+GSE27973.contrast <- makeContrasts(treatment = CSE-medium, 
+                                  levels = design)
+                                 
+#Get the contrasts for samples of interest
+fit2 <- contrasts.fit(fit, GSE27973.contrast)
+#Adjust fit coefficients using an empirical Bayes moderation of standard errors
+fit2 <- eBayes(fit2)
+
+#Results for each hypothesis test can be extracted using
+treatment_results <- topTable(fit2, coef="treatment", adjust="BH", p.value = 0.05)
+head(treatment_results)
+
+nrow(treatment_results)
+```
+    
+> There are only 10 probes that show a statistically different expression level between samples treated with CSE-only versus samples treated with medium-only.
+    
     + What is the top differentially expressed gene? Create a boxplot of its normalized intensities across **all** treatment groups. How many probes corresponding to this gene are among the top hits? (*3 points*)
+    
+```{r, eval=TRUE}
+
+```
+    
     + Create a heatmap using the significantly differentially expressed genes and samples from all conditions. How do the treatment groups cluster? What does this indicate (a qualitative answer is sufficient)? (*3 points*)
     
+```{r, eval=TRUE}
+
+```
