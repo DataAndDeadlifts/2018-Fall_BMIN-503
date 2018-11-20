@@ -42,14 +42,14 @@ output:
 > ## Results
 
 ```{r}
-source("http://bioconductor.org/biocLite.R")
-biocLite("GEOquery")
-biocLite("oligo")
-biocLite("limma")
-biocLite("hgu133plus2.db")
-biocLite("pd.hg.u133.plus.2")
-biocLite("viridis")
-install.packages("gplots")
+#source("http://bioconductor.org/biocLite.R")
+#biocLite("GEOquery")
+#biocLite("oligo")
+#biocLite("limma")
+#biocLite("hgu133plus2.db")
+#biocLite("pd.hg.u133.plus.2")
+#biocLite("viridis")
+#install.packages("gplots")
 ```
 
 #### Gene Expression
@@ -93,7 +93,8 @@ boxplot(raw.data, col="red", main="RAW Expression Values", las=2)
 ```{r, eval=TRUE}
 GSE27973.rma <- rma(raw.data)
 
-boxplot(GSE27973.rma, col="blue", main="RMA Expression Values")
+par(mar=c(9,5,1,1))
+boxplot(GSE27973.rma, col="blue", main="RMA Expression Values", las=2)
 ```
     
 > This looks a lot more uniform! Thanks RMA ;)
@@ -130,11 +131,58 @@ nrow(treatment_results)
     + What is the top differentially expressed gene? Create a boxplot of its normalized intensities across **all** treatment groups. How many probes corresponding to this gene are among the top hits? (*3 points*)
     
 ```{r, eval=TRUE}
+# Get gene names
+library(hgu133plus2.db)
+library(ggplot2)
+library(dplyr)
+# Output all differential expression results
+full_res <- topTable(fit2, coef="treatment" , adjust="BH", num=Inf)
+# Assign (in)significant genes
+full_res$sig <- rep("insignificant", nrow(full_res))
+full_res$sig[which(full_res$adj.P.Val<0.05)] <- "significant"
+full_res.significant <- full_res[full_res$sig == "significant",]
+full_res.significant$ID = row.names(full_res.significant)
+full_res.significant$SYMBOL <- lapply(full_res.significant$ID, function(x) mget(x, env=hgu133plus2SYMBOL, ifnotfound=NA)[[1]])
 
+full_res.significant <- full_res.significant[order(full_res.significant$P.Value),]
+
+top_probe <- rownames(full_res.significant)[1]
+top_gene <- full_res.significant$SYMBOL[[1]]
+
+num_probes_corr_to_top_gene <- nrow(full_res.significant[full_res.significant$SYMBOL==top_gene,])
+
+df_boxplot=data.frame(
+  expression=exprs(GSE27973.qc.rma)[top_probe, ],
+  treatment=GSE27973.qc.rma$treatment)
+
+ggplot(df_boxplot, aes(x=treatment,y=expression)) +
+  geom_boxplot(outlier.colour=NA, color="grey18", fill="lightgreen") +
+  stat_boxplot(geom='errorbar', color="grey18") +
+  geom_jitter(size=1, position=position_jitter(width=0.3)) +
+  ggtitle(paste("Boxplot for probe ", top_probe)) +
+  xlab("")+
+  ylab("RMA-intensity")+
+  theme_bw() +
+  theme(legend.position="none")
 ```
+
+> The top gene is "NQO1" and it has 3 total probes associated in the most significant results. The above probe is the most differentially expressed one in the dataset.
     
     + Create a heatmap using the significantly differentially expressed genes and samples from all conditions. How do the treatment groups cluster? What does this indicate (a qualitative answer is sufficient)? (*3 points*)
     
-```{r, eval=TRUE}
-
+```{r eval=TRUE, fig.width=12, fig.height=10}
+library(gplots)
+top.eset <- GSE27973.qc.rma[row.names(exprs(GSE27973.qc.rma)) %in% row.names(full_res.significant)]
+heatmap.2(exprs(top.eset), trace="none", keysize=1.5, key.title=NA, margins = c(11,8))
+#Add status to top of plot
+status.colors <- unlist(lapply(GSE27973.qc.rma$treatment, function(x){if (x=="CSE") "navy" else if (x=="medium") "red" else if (x=="RV16") "orange" else "yellow"}))
+par(mar=c(7,4,4,2)+0.1) 
+heatmap.2(exprs(top.eset), col=viridis(256, option="B"),
+          trace="none", keysize=1.5, key.title=NA,
+          ColSideColors=status.colors, margins = c(11,8))
+legend("topright", legend=c("CSE", "medium", "RV16", "RV16_and_CSE"), fill=c("navy", "red", "orange", "yellow")) 
 ```
+
+> It appears that the medium and RV16 tend to express similarly, for just about all markers. Similarly, the CSE and RV16_and_CSE treatment groups tend to group together on all expression markers. Some genes are highly expressed in one group or the other, or vice versa, with all groups appearing to similarly express 204050_s_at and the three "X_at" genes near the middle highlighted in yellow. Similarly, the final expression marker appears to be consistently expressed at a low rate across all groups.
+
+> The starkest difference between the groups appears to be at "205749_at" as well as with "201468_s_at". The other markers appear to be expressed at high or low rates, but at different magnitudes.
