@@ -40,16 +40,19 @@ output:
 > There was some effort in extracting, using NLP, the comments and other features included in the XML other than the protein sequence. These features ended up being difficult to parse and include in the final dataset so they were excluded.
 
 > ## Results
+> The original setup of the problem and its answer resulted in a model that predicted exactly what I was asking it to predict. In short I asked the model to predict whether any protein as a whole produced amyloid and with 11+ million records of sometimes over 3000 entries for a single protein - it did rather well.
+
+> What I'm more interested in is any given section of protein producing amyloid, which is what I am working on now (and hopefully will finish by my presentation). To achieve a model that does this I am adding many more ngram level features to balance the data between protein-level features and ngram-level features. I am also changing the prediction output to give me an array of n-predictions. In my case the output could be [1, 0, 0, 1, 1] which would mean the first and last 2 amino acids are predicted as amyloid.
 
 ```{r}
-#source("http://bioconductor.org/biocLite.R")
-#biocLite("GEOquery")
-#biocLite("oligo")
-#biocLite("limma")
-#biocLite("hgu133plus2.db")
-#biocLite("pd.hg.u133.plus.2")
-#biocLite("viridis")
-#install.packages("gplots")
+source("http://bioconductor.org/biocLite.R")
+biocLite("GEOquery")
+biocLite("oligo")
+biocLite("limma")
+biocLite("hgu133plus2.db")
+biocLite("pd.hg.u133.plus.2")
+biocLite("viridis")
+install.packages("gplots")
 ```
 
 #### Gene Expression
