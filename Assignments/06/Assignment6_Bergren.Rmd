@@ -31,28 +31,34 @@ output:
 1. Using your local forked [Final Project Repo](https://github.com/HimesGroup/BMIN503_Final_Project), write a draft of the Methods and Results sections following the instructions provided in the Rmd file where you drafted the Introduction. You should be using an RStudio Project to pull/push changes as you work. Edit your own README.md file to describe what your project is about and what files are present in the repository.
 
 > ## Methods
-> The work of this project was split into two general parts. Firstly I utilized python extensively to download, format and parse my data into the full training dataset.
+> The work of this project was split into two general parts, ETL and Model Building.
+
+> ### Extract, Transform, Load (ETL)
+> Firstly I utilized python extensively to download, format and parse my data into the full training dataset.
 
 > My source was firstly the XML formatted records of each protein manually annotated and curated within Uniprot. These files contained the approved sequences and other data on each protein in uniprot. The other second data source is the amyloid database at amypro.net, this dataset has the amyloid sequences of every protein found to form amyloid protein.
 
-> To process the protein sequences I utilized the biopython package to perform a number of calculations on each protein sequence and extract a number of protein-level features. To n-gram each sequence I used the nltk package to process the protein sequences.
+> To process the protein sequences I utilized the biopython package to perform a number of calculations on each protein sequence and extract a number of protein-level features. To n-gram each sequence I used the nltk python package to process the protein sequences.
 
-> There was some effort in extracting, using NLP, the comments and other features included in the XML other than the protein sequence. These features ended up being difficult to parse and include in the final dataset so they were excluded.
+> There was some effort in extracting, using NLP, the comments and other features included in the XML other than the protein sequence. These features ended up being difficult to parse, contained little information and were ultimately excluded from the final dataset.
+
+> Further work could be done in performing a gene enrichment pipeline on all of the proteins and including those data points in the final training data.
 
 > ## Results
-> The original setup of the problem and its answer resulted in a model that predicted exactly what I was asking it to predict. In short I asked the model to predict whether any protein as a whole produced amyloid and with 11+ million records of sometimes over 3000 entries for a single protein - it did rather well.
+> The original setup of the problem and its answer resulted in a model that predicted whether entire proteins were likely to produce amyloid. The resulting model produced a 95% AUC-ROC score across a few different permutations of the data.
 
-> What I'm more interested in is any given section of protein producing amyloid, which is what I am working on now (and hopefully will finish by my presentation). To achieve a model that does this I am adding many more ngram level features to balance the data between protein-level features and ngram-level features. I am also changing the prediction output to give me an array of n-predictions. In my case the output could be [1, 0, 0, 1, 1] which would mean the first and last 2 amino acids are predicted as amyloid.
+> This result is explained by the data I used to train it. I basically duplicated the protein level features by n-gramming, making the protein level features much more important than the n-gram level features. If a protein had 3000 n-grams, then the protein level features were duplicated 3000 times. Ultimately this result was unsatisfactory to me, so I re-formatted my problem.
 
-```{r}
+> What I'm more interested in is if I can point at any given section of protein and predict whether it will form amyloid. This is the problem I am working on now (and hopefully will finish by my presentation). To achieve a model that does this I am adding many more n-gram level features to balance the data between protein-level features and ngram-level features. I am also changing the prediction output to give me an array of n-predictions. In my case the output could be [1, 0, 0, 1, 1] which would mean the first and last 2 amino acids are predicted as amyloid.
+
+```{r include=FALSE}
 source("http://bioconductor.org/biocLite.R")
-biocLite("GEOquery")
-biocLite("oligo")
-biocLite("limma")
-biocLite("hgu133plus2.db")
-biocLite("pd.hg.u133.plus.2")
-biocLite("viridis")
-install.packages("gplots")
+biocLite(c(
+  "GEOquery", "oligo", "limma", "hgu133plus2.db", 
+  "pd.hg.u133.plus.2", "viridis", "gplots","oligoClasses","BiocParallel"
+  )
+)
+
 ```
 
 #### Gene Expression
@@ -60,16 +66,18 @@ install.packages("gplots")
     + Download the raw CEL files from GEO, create an expression set, and include a phenotype variable corresponding to `treatment` with four levels as can be inferred from the GEO submission.  (*2 points*)
     
     
-```{r}
+```{r eval=TRUE}
+library(limma)
 library(GEOquery)
+
 getGEOSuppFiles("GSE27973")
 untar("./GSE27973/GSE27973_RAW.tar", exdir="./GSE27973/data")
 ```
 
 
 ```{r, eval=TRUE}
+library(oligoClasses)
 library(oligo)
-library(limma)
 library(viridis)
 
 celFiles <- list.celfiles("./GSE27973/data", full.names=TRUE, listGzipped=TRUE)
@@ -89,7 +97,7 @@ par(mar=c(9,5,1,1))
 boxplot(raw.data, col="red", main="RAW Expression Values", las=2)
 ```
     
-> It looks like the samples vary quite a bit, they all seem to have really high error bars too. In terms out 'outliers' I might point at GSM692115 for being high, GSM692118 for being lowand GSM69219 for being high - its hard to really say for certain though.
+> It looks like the samples vary quite a bit, they all seem to have really high error bars too. In terms out 'outliers' I might point at GSM692115 for being high, GSM692118 for being low and GSM69219 for being high - its hard to say for certain though.
     
     + Perform RMA on the samples and create a new intensity boxplot. (*2 points*)
     
@@ -100,7 +108,7 @@ par(mar=c(9,5,1,1))
 boxplot(GSE27973.rma, col="blue", main="RMA Expression Values", las=2)
 ```
     
-> This looks a lot more uniform! Thanks RMA ;)
+> This looks a lot more uniform! Thanks RMA normalization ;)
     
     + Perform a differential expression analysis, and report how many probes are significantly differentially expressed between the *CSE* and *medium* samples based on a Benjamini-Hochberg corrected p-value threshold of 0.05. Note: it is OK to do an analysis without taking into account donor status. That is, compare sample expression based on treatment status only. (*3 points*)
     
@@ -138,6 +146,7 @@ nrow(treatment_results)
 library(hgu133plus2.db)
 library(ggplot2)
 library(dplyr)
+
 # Output all differential expression results
 full_res <- topTable(fit2, coef="treatment" , adjust="BH", num=Inf)
 # Assign (in)significant genes
@@ -151,8 +160,10 @@ full_res.significant <- full_res.significant[order(full_res.significant$P.Value)
 
 top_probe <- rownames(full_res.significant)[1]
 top_gene <- full_res.significant$SYMBOL[[1]]
+print(paste0("The gene with the highest likelihood of its differential expression not being accounted for by chance (lowest p-val): ",top_gene))
 
 num_probes_corr_to_top_gene <- nrow(full_res.significant[full_res.significant$SYMBOL==top_gene,])
+print(paste0("The number of probes corresponding to ",top_gene,": ",num_probes_corr_to_top_gene))
 
 df_boxplot=data.frame(
   expression=exprs(GSE27973.qc.rma)[top_probe, ],
@@ -169,7 +180,7 @@ ggplot(df_boxplot, aes(x=treatment,y=expression)) +
   theme(legend.position="none")
 ```
 
-> The top gene is "NQO1" and it has 3 total probes associated in the most significant results. The above probe is the most differentially expressed one in the dataset.
+> The top gene is "NQO1" and it has 3 probes associated in the most significant results. The above probe is the most differentially expressed one in the dataset between all treatment groups.
     
     + Create a heatmap using the significantly differentially expressed genes and samples from all conditions. How do the treatment groups cluster? What does this indicate (a qualitative answer is sufficient)? (*3 points*)
     
